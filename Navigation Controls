@@ -1,0 +1,244 @@
+/*
+  SendReceiveMultipleValues
+
+  This sketch repeatedly receives two values, and send back the same values in
+  the opposite order as well as their sum.
+
+  (This mode of communication, where a connection is used both to send and
+  receive, is called "full duplex".)
+
+  This sketch pairs well with the SendReceiveMultipleValues example from the
+  Processing SerialRecord library
+  <https://osteele.github.io/Processing_SerialRecord/>.
+
+  You can also interact with this sketch from the Serial Monitor. Enter
+  `100,200` into the text area at the top, and press "Send".
+
+  by Oliver Steele, 2020-2022
+
+  This example code is in the public domain.
+*/
+
+#include "SerialRecord.h"
+
+SerialRecord reader(5);
+SerialRecord writer(1);
+
+// This example shows several ways to set up and use 'palettes' of colors
+// with FastLED.
+//
+// These compact palettes provide an easy way to re-colorize your
+// animation on the fly, quickly, easily, and with low overhead.
+//
+// USING palettes is MUCH simpler in practice than in theory, so first just
+// run this sketch, and watch the pretty lights as you then read through
+// the code.  Although this sketch has eight (or more) different color schemes,
+// the entire sketch compiles down to about 6.5K on AVR.
+//
+// FastLED provides a few pre-configured color palettes, and makes it
+// extremely easy to make up your own color schemes with palettes.
+//
+// Some notes on the more abstract 'theory and practice' of
+// FastLED compact palettes are at the bottom of this file.
+
+#include 
+
+#define LED_PIN 5
+#define NUM_LEDS 59
+#define BRIGHTNESS 64
+#define LED_TYPE WS2812
+#define COLOR_ORDER GRB
+CRGB leds[NUM_LEDS];
+
+/* Simple example code for Force Sensitive Resistor (FSR) with Arduino. More info: https://www.makerguides.com */
+
+// Define FSR pin:
+#define fsrpin1 A0
+#define fsrpin2 A1
+#define fsrpin3 A2
+#define fsrpin4 A3
+
+//Define variable to store sensor readings:
+int fsrreading1;  //Variable to store FSR value
+int fsrreading2;
+int fsrreading3;
+int fsrreading4;
+
+void setup() {
+  Serial.begin(9600);
+  delay( 3000 ); // power-up safety delay
+    FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+    FastLED.setBrightness(  BRIGHTNESS );
+}
+
+void loop() {
+  if (reader.read()) {
+    if (reader[0] == 1) {
+      for (int i = 0; i < 6; ++i) {
+        leds[i] = CRGB::White;
+      }
+    } else if (reader[0] == 0) {
+      for (int i = 0; i < 6; ++i) {
+        leds[i] = CRGB::Black;
+      }
+    }
+    if (reader[1] == 1) {
+      for (int i = 12; i < 18; ++i) {
+        leds[i] = CRGB::White;
+      }
+    } else if (reader[1] == 0) {
+      for (int i = 12; i < 18; ++i) {
+        leds[i] = CRGB::Black;
+      }
+    }
+    if (reader[2] == 1) {
+      for (int i = 24; i < 30; ++i) {
+        leds[i] = CRGB::White;
+      }
+    } else if (reader[2] == 0) {
+      for (int i = 24; i < 30; ++i) {
+        leds[i] = CRGB::Black;
+      }
+    }
+    if (reader[3] == 1) {
+      for (int i = 36; i < 42; ++i) {
+        leds[i] = CRGB::White;
+      }
+    } else if (reader[3] == 0) {
+      for (int i = 36; i < 42; ++i) {
+        leds[i] = CRGB::Black;
+      }
+    }
+    FastLED.show();
+    // if (reader[4] == 1) {
+    //   for (int i = 48; i < 54; ++i) {
+    //     leds[i] = CRGB::White;
+    //   }
+    // } else if (reader[4] == 0) {
+    //   for (int i = 48; i < 54; ++i) {
+    //     leds[i] = CRGB::Black;
+    //   }
+    // }
+    if (reader[4] == 1) {
+      for (int i = 6; i < 12; ++i) {
+        leds[i] = CRGB::White;
+      }
+      for (int i = 18; i < 24; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 30; i < 36; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 42; i < 48; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 54; i < 60; ++i) {
+        leds[i] = CRGB::Black;
+      }
+    } else if (reader[4] == 2) {
+      for (int i = 6; i < 12; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 18; i < 24; ++i) {
+        leds[i] = CRGB::White;
+      }
+      for (int i = 30; i < 36; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 42; i < 48; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 54; i < 60; ++i) {
+        leds[i] = CRGB::Black;
+      }
+    } else if (reader[4] == 3) {
+      for (int i = 6; i < 12; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 18; i < 24; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 30; i < 36; ++i) {
+        leds[i] = CRGB::White;
+      }
+      for (int i = 42; i < 48; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 54; i < 60; ++i) {
+        leds[i] = CRGB::Black;
+      }
+    } else if (reader[4] == 4) {
+      for (int i = 6; i < 12; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 18; i < 24; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 30; i < 36; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 42; i < 48; ++i) {
+        leds[i] = CRGB::White;
+      }
+      for (int i = 54; i < 60; ++i) {
+        leds[i] = CRGB::Black;
+      }
+    } else if (reader[4] == 5) {
+      for (int i = 6; i < 12; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 18; i < 24; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 30; i < 36; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 42; i < 48; ++i) {
+        leds[i] = CRGB::Black;
+      }
+      for (int i = 54; i < 60; ++i) {
+        leds[i] = CRGB::White;
+      }
+    }
+  }
+
+
+  // Read the FSR pin and store the output as fsrreading:
+  fsrreading1 = analogRead(fsrpin1);
+  fsrreading2 = analogRead(fsrpin2);
+  fsrreading3 = analogRead(fsrpin3);
+  fsrreading4 = analogRead(fsrpin4);
+
+
+  // // Print the fsrreading in the serial monitor:
+  // // Print the string "Analog reading = ".
+  // Serial.print("Analog reading = ");
+  // // Print the fsrreading:
+  // Serial.print(fsrreading);
+
+  // // We can set some threshholds to display how much pressure is roughly applied:
+  // if (fsrreading1 < 10) {
+  //   Serial.println(" - No pressure");
+  // } else if (fsrreading < 200) {
+  //   Serial.println(" - Light touch");
+  // } else if (fsrreading < 500) {
+  //   Serial.println(" - Light squeeze");
+  // } else if (fsrreading < 800) { // Serial.println(" - Medium squeeze"); // } else { // Serial.println(" - Big squeeze"); // } if (fsrreading1 > 10) {
+    writer[0] = 1;
+    writer.send();
+  }
+  if (fsrreading2 > 10) {
+    writer[0] = 1;
+    writer.send();
+  }
+  if (fsrreading3 > 10) {
+    writer[0] = 1;
+    writer.send();
+  }
+  if (fsrreading4 > 10) {
+    writer[0] = 1;
+    writer.send();
+  }
+
+  delay(500);  //Delay 500 ms.
+}
