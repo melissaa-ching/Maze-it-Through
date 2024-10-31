@@ -1,0 +1,776 @@
+/*
+  MazeGenerator
+ —
+ An implementation of recursive backtracker algorithm described here:
+ https://en.wikipedia.org/wiki/Maze_generation_algorithm
+ —
+ Developped and tested on :
+ - Processing 3.0b4 on MacOSX (10.10.5)
+ 
+ —
+ Julien @v3ga Gachadoat
+ www.v3ga.net
+ www.2roqs.com
+ */
+
+/**
+ * Example sketch for the SerialRecord library for Processing.
+ *
+ * Sends the x and y position of the mouse on the canvas to the serial port.
+ * Reads values back from the serial port, and draws another circle at that
+ * position.
+ *
+ * Click the canvas to request the Arduino to send back the last record that it
+ * received.
+ *
+ * Uncomment the line that contains `periodicEchoRequest` to do this
+ * automatically.
+ */
+
+import processing.serial.*;
+import osteele.processing.SerialRecord.*;
+
+//Serial serialPort;
+//SerialRecord sender;
+//SerialRecord receiver;
+
+PImage photo1;
+PImage photo2;
+PImage photo3;
+PImage photo4;
+PImage end;
+PImage endslide;
+
+PWindow win;
+
+Maze maze;
+int tilesX=16;
+int tilesY=9;
+int grid = tilesX * tilesY;
+int sides=0;
+int x=0;
+int xPosition=0;
+int yPosition=0;
+int tileWidth = 1920/tilesX;//width / tilesX;
+int tileHeight = 1080/tilesY; //height / tilesY;
+int tileMidX= tileWidth / 2;
+int tileMidY= tileHeight / 2;
+int movementX=0;
+int movementY=0;
+int direction = 0;
+int prevDirection = 0;
+int n;
+int b;
+int numOption = 0; // move to where position is updated
+// check how many options
+boolean moving = false;
+boolean gameover =false;
+boolean decision = false;
+boolean OptionNorth = false;
+boolean OptionWest = false;
+boolean OptionSouth = false;
+boolean OptionEast = false;
+boolean Choice = false;
+boolean twoOptions = false;
+boolean oneOption = false;
+
+
+
+void setup() {
+  fullScreen();
+  //size(870,540);
+  //String serialPortName = SerialUtils.findArduinoPort();
+  //serialPort = new Serial(this, "COM7", 9600);
+
+  //// In order to send a different number of values, modify the number `2` on the
+  //// next line to the number values to send. The corresponding number in the
+  //// Arduino sketch should be modified as well.
+  //sender = new SerialRecord(this, serialPort, 5);
+
+  //// If the Arduino sketch sends a different number of values, modify the number
+  //// `3` on the next line to match the number of values that it sends.
+  //receiver = new SerialRecord(this, serialPort, 4);
+  win = new PWindow();
+  maze = new Maze(tilesX, tilesY);
+  maze.setCellStart(0, 0);
+  maze.compute();
+
+  photo1 = loadImage("IMA.png");
+  photo2 = loadImage("Ghost.png");
+  photo3 = loadImage("Resistor.png");
+  photo4 = loadImage("LED.png");
+  end = loadImage("end.png");
+  endslide = loadImage("endslide.png");
+}
+
+void draw() {
+  background(255);
+  stroke(0);
+  strokeWeight(5);
+  maze.draw();
+  image(end, 0, 0, tileWidth, tileHeight);
+  detectWalls();
+  imagePlacement();
+  Player2();
+  if ((xPosition==0) && (yPosition==0)) {
+    gameover = true;
+    //sender.values[4] = 5;
+    //  sender.send();
+  }
+  if (OptionNorth == true) {
+    //sender.values[0] = 1;
+  } else if (OptionNorth == false) {
+    //sender.values[0] = 0;
+  }
+  if (OptionWest == true) {
+    //sender.values[1] = 1;
+  } else if (OptionWest == true) {
+    //sender.values[1] = 0;
+  }
+  if (OptionSouth == true) {
+    //sender.values[2] = 1;
+  } else  if (OptionSouth == true) {
+    //sender.values[2] = 0;
+  }
+  if (OptionEast == true) {
+    //sender.values[3] = 1;
+  } else  if (OptionEast == true) {
+    //sender.values[3] = 0;
+  }
+  if (b==1) {
+    //sender.values[4] = 1;
+    //  sender.send();
+  }
+  if (b==2) {
+    //sender.values[4] = 2;
+    //  sender.send();
+  }
+  if (b==3) {
+    //sender.values[4] = 3;
+    //  sender.send();
+  }
+  if (b==4) {
+    //sender.values[4] = 4;
+    //  sender.send();
+  }
+  //sender.send();
+}
+
+void mousePressed() {
+  maze.compute();
+  xPosition=floor(random(0, tilesX))*tileWidth;
+  yPosition=floor(random(0, tilesY))*tileHeight;
+}
+
+void keyPressed() {
+  if (key == 'e')
+    saveFrame("maze.png");
+  //if (key == CODED) {
+  if ((key == 'w') && (OptionNorth == true)) {
+    yPosition = yPosition-tileHeight;
+    prevDirection = 0;
+    moving = true;
+  }
+  if ((key == 'a') && (OptionWest == true)) {
+    xPosition = xPosition-tileWidth;
+    prevDirection = 1;
+    moving = true;
+  }
+  if ((key == 's') && (OptionSouth == true)) {
+    yPosition = yPosition+tileHeight;
+    prevDirection = 2;
+    moving = true;
+  }
+  if ((key == 'd') && (OptionEast == true)) {
+    xPosition = xPosition+tileWidth;
+    prevDirection = 3;
+    moving = true;
+  }
+  //}
+}
+
+void Player2() {
+  fill(200,0);
+  noStroke();
+  ellipse(xPosition+tileMidX, yPosition+tileMidY, tileWidth-20, tileHeight-20);
+}
+
+void detectWalls() {
+  boolean [] options = new boolean [4];
+
+  //checking the color of four sides
+  color north = get(xPosition + tileMidX, yPosition);
+  int northSide= color(north); //convert color to a numerical value
+  int clrNorthSide= floor(map(northSide, -16777216, -1, 0, 255)); //map value with the usual shade range of 0-255
+  if (clrNorthSide == 255 ) {
+    options[0] = true;
+    OptionNorth = true;
+    //sender.values[0] = 1;
+    //  sender.send();
+  } else {
+    options[0] = false;
+    OptionNorth = false;
+    //sender.values[0] = 0;
+    //  sender.send();
+  }
+  color west= get(xPosition, yPosition  + tileMidY);
+  int westSide= color(west); //convert color to a numerical value
+  int clrWestSide= floor(map(westSide, -16777216, -1, 0, 255)); //map value with the usual shade range of 0-255
+  if (clrWestSide == 255 ) {
+    options[1] = true;
+    OptionWest = true;
+    //sender.values[1] = 1;
+    //  sender.send();
+  } else {
+    options[1] = false;
+    OptionWest = false;
+    //sender.values[1] = 0;
+    //  sender.send();
+  }
+  color south= get(xPosition + tileMidX, yPosition + tileWidth);
+  int southSide= color(south); //convert color to a numerical value
+  int clrSouthSide= floor(map(southSide, -16777216, -1, 0, 255)); //map value with the usual shade range of 0-255
+  if (clrSouthSide == 255 ) {
+    options[2] = true;
+    OptionSouth = true;
+    //sender.values[2] = 1;
+    //  sender.send();
+  } else {
+    options[2] = false;
+    OptionSouth = false;
+    //sender.values[2] = 0;
+    //  sender.send();
+  }
+  color east= get(xPosition + tileWidth, yPosition + tileMidY);
+  int eastSide= color(east); //convert color to a numerical value
+  int clrEastSide= floor(map(eastSide, -16777216, -1, 0, 255)); //map value with the usual shade range of 0-255
+  if (clrEastSide == 255 ) {
+    options[3] = true;
+    OptionEast = true;
+    //sender.values[3] = 1;
+    //  sender.send();
+  } else {
+    options[3] = false;
+    OptionEast = false;
+    //sender.values[3] = 0;
+    //  sender.send();
+  }
+
+  for (int i=0; i < options.length; i++) {
+    if (options[i] == true) {
+      numOption ++;
+    }
+  }
+  println(numOption);
+  if (numOption >= 3) {
+    if (OptionNorth==true) {
+      //println("north");
+      //sender.values[0] = true;
+    } else {
+      //sender.values[0] = false;
+    }
+    if (OptionWest==true) {
+      //println("west");
+      //sender.values[1] = true;
+    } else {
+      //sender.values[1] = false;
+    }
+    if (OptionSouth==true) {
+      //println("south");
+      //sender.values[2] = true;
+    } else {
+      //sender.values[2] = false;
+    }
+    if (OptionEast==true) {
+      //println("east");
+      //sender.values[3] = true;
+    } else {
+      //sender.values[3] = false;
+    }
+    //sender.send();
+  }
+  if (numOption == 2) {
+    direction=prevDirection;
+    if ((direction == 0) && (OptionNorth==true) && (prevDirection != 2)) {
+      yPosition = yPosition - tileHeight;
+      prevDirection=0;
+    } else if ((direction == 0) && (OptionNorth==false) || (prevDirection == 2)) {
+      direction = round(random(0, 3));
+    }
+    if ((direction == 1) && (OptionWest==true) && (prevDirection != 3)) {
+      xPosition = xPosition-tileWidth;
+      prevDirection=1;
+    } else if ((direction == 1) && (OptionWest==false) || (prevDirection == 3)) {
+      direction = round(random(0, 3));
+    }
+    if ((direction == 2) && (OptionSouth==true) && (prevDirection != 0)) {
+      yPosition = yPosition + tileHeight;
+      prevDirection=2;
+    } else if ((direction == 2) && (OptionSouth==false) || (prevDirection == 0)) {
+      direction = round(random(0, 3));
+    }
+    if ((direction == 3) && (OptionEast==true) && (prevDirection != 1)) {
+      xPosition = xPosition+tileWidth;
+      prevDirection=3;
+    } else if ((direction == 3) && (OptionEast==false) || (prevDirection == 1)) {
+      direction = round(random(0, 3));
+    }
+  }
+  if (numOption == 1) {
+
+    if ((direction == 0) && (OptionNorth==true)) {
+      yPosition = yPosition - tileHeight;
+      prevDirection=0;
+    } else if ((direction == 0) && (OptionNorth==false)) {
+      direction = round(random(0, 3));
+    }
+    if ((direction == 1) && (OptionWest==true)) {
+      xPosition = xPosition-tileWidth;
+      prevDirection=1;
+    } else if ((direction == 1) && (OptionWest==false)) {
+      direction = round(random(0, 3));
+    }
+    if ((direction == 2) && (OptionSouth==true)) {
+      yPosition = yPosition + tileHeight;
+      prevDirection=2;
+    } else if ((direction == 2) && (OptionSouth==false)) {
+      direction = round(random(0, 3));
+    }
+    if ((direction == 3) && (OptionEast==true)) {
+      xPosition = xPosition+tileWidth;
+      prevDirection=3;
+    } else if ((direction == 3) && (OptionEast==false)) {
+      direction = round(random(0, 3));
+    }
+  }
+}
+
+//void AutomaticMovement() {
+//  //if ((Choice == false) && (twoOptions == true) && (oneOption == false)) {
+//  if ((direction == 0) && (OptionNorth==true) && (prevDirection != 2)) {
+//    yPosition = yPosition - tileHeight;
+//    prevDirection=0;
+//  } else if ((direction == 0) && (OptionNorth==false) || (prevDirection == 2)) {
+//    direction = round(random(0, 3));
+//  }
+//  if ((direction == 1) && (OptionWest==true) && (prevDirection != 3)) {
+//    xPosition = xPosition-tileWidth;
+//    prevDirection=1;
+//  } else if ((direction == 1) && (OptionWest==false) || (prevDirection == 3)) {
+//    direction = round(random(0, 3));
+//  }
+//  if ((direction == 2) && (OptionSouth==true) && (prevDirection != 0)) {
+//    yPosition = yPosition + tileHeight;
+//    prevDirection=2;
+//  } else if ((direction == 2) && (OptionSouth==false) || (prevDirection == 0)) {
+//    direction = round(random(0, 3));
+//  }
+//  if ((direction == 3) && (OptionEast==true) && (prevDirection != 1)) {
+//    xPosition = xPosition+tileWidth;
+//    prevDirection=3;
+//  } else if ((direction == 3) && (OptionEast==false) || (prevDirection == 1)) {
+//    direction = round(random(0, 3));
+//  }
+//  //} else if ((Choice == false) && (twoOptions == false) && (oneOption == true)) {
+//  //if ((direction == 0) && (OptionNorth==true)) {
+//  //  yPosition = yPosition - tileHeight;
+//  //  prevDirection=0;
+//  //} else if ((direction == 0) && (OptionNorth==false)) {
+//  //  direction = round(random(0, 3));
+//  //}
+//  //if ((direction == 1) && (OptionWest==true)) {
+//  //  xPosition = xPosition-tileWidth;
+//  //  prevDirection=1;
+//  //} else if ((direction == 1) && (OptionWest==false)) {
+//  //  direction = round(random(0, 3));
+//  //}
+//  //if ((direction == 2) && (OptionSouth==true)) {
+//  //  yPosition = yPosition + tileHeight;
+//  //  prevDirection=2;
+//  //} else if ((direction == 2) && (OptionSouth==false)) {
+//  //  direction = round(random(0, 3));
+//  //}
+//  //if ((direction == 3) && (OptionEast==true)) {
+//  //  xPosition = xPosition+tileWidth;
+//  //  prevDirection=3;
+//  //} else if ((direction == 3) && (OptionEast==false)) {
+//  //  direction = round(random(0, 3));
+//  //}
+//  // }
+//}
+void imagePlacement() {
+  //rectMode(CENTER);
+  for (int sx = 0; sx < 1920; sx = sx + tileWidth) {
+    for (int sy = 0; sy < 1080; sy = sy  + tileHeight) {
+      boolean [] directions = new boolean [4];
+      //println("sx =" + sx);
+      //println("sy =" + sy);
+      //checking the color of four sides
+      color north= get(sx + tileMidX, sy);
+      //println(north);
+      int northSide= color(north); //convert color to a numerical value
+      int clrNorthSide= round(map(northSide, -16777216, 0, 0, 255)); //map value with the usual shade range of 0-255
+      if (clrNorthSide != 0) {
+        directions[0] = true;
+      } else {
+        directions[0] = false;
+      }
+      color west= get(sx, sy  + tileMidY);
+      int westSide= color(west); //convert color to a numerical value
+      int clrWestSide= floor(map(westSide, -16777216, 0, 0, 255)); //map value with the usual shade range of 0-255
+      if (clrWestSide != 0) {
+        directions[1] = true;
+      } else {
+        directions[1] = false;
+      }
+
+      color south= get(sx + tileMidX, sy + tileWidth);
+      int southSide= color(south); //convert color to a numerical value
+      int clrSouthSide= floor(map(southSide, -16777216, 0, 0, 255)); //map value with the usual shade range of 0-255
+      if (clrSouthSide != 0) {
+        directions[2] = true;
+      } else {
+        directions[2] = false;
+      }
+      color east= get(sx + tileWidth, sy+ tileMidY);
+      int eastSide= color(east); //convert color to a numerical value
+      int clrEastSide= floor(map(eastSide, -16777216, 0, 0, 255)); //map value with the usual shade range of 0-255
+      if (clrEastSide != 0) {
+        directions[3] = true;
+      } else {
+        directions[3] = false;
+      }
+      int opt = 0; // move to where position is updated
+      // check how many options
+      for (int i=0; i < 4; i++) {
+        if (directions[i] == true) {
+          opt ++;
+          println(opt);
+        }
+      }
+      if (opt >= 3) {
+        n = floor((noise(sx, sy) * 6) % 4 + 1);
+        if ((xPosition == sx) && (yPosition == sy)) {
+          b = n;
+        }
+        //dy=sy;
+        //dx=sx;
+        //n=v;
+        println (n);
+        if (n==1) {
+          image(photo1, sx, sy, tileWidth, tileHeight);
+        }
+        if (n==2) {
+          image(photo2, sx, sy, tileWidth, tileHeight);
+        }
+        if (n==3) {
+          image(photo3, sx, sy, tileWidth, tileHeight);
+        }
+        if (n==4) {
+          image(photo4, sx, sy, tileWidth, tileHeight);
+        }
+      }
+    }
+  }
+}
+
+class PWindow extends PApplet {
+  PWindow() {
+    super();
+    PApplet.runSketch(new String[] {this.getClass().getSimpleName()}, this);
+  }
+
+  void settings() {
+    size(1920, 1080);
+    photo1 = loadImage("IMA.png");
+    photo2 = loadImage("Ghost.png");
+    photo3 = loadImage("Resistor.png");
+    photo4 = loadImage("LED.png");
+    end = loadImage("end.png");
+  }
+
+  void setup() {
+  }
+
+  void draw() {
+    background(255);
+    delay(500);
+    imageMode(CENTER);
+    if (b==1) {
+      image(photo1, width/2, height/2);
+    }
+    if (b==2) {
+      image(photo2, width/2, height/2);
+    }
+    if (b==3) {
+      image(photo3, width/2, height/2);
+    }
+    if (b==4) {
+      image(photo4, width/2, height/2);
+    }
+    if ((xPosition==0) && (yPosition==0)) {
+      image(endslide, width/2, height/2);
+    }
+    if (OptionNorth == true) {
+      triangle(width/2, 100, width/4, 200, width/4*3, 200);
+    }
+    if (OptionWest == true) {
+      triangle(100, height/2, 200, height/4, 200, height/4*3);
+    }
+    if (OptionSouth == true) {
+      triangle(width/2, height-100, width/4, height-200, width/4*3, height-200);
+    }
+    if (OptionEast == true) {
+      triangle(width-100, height/2, width-200, height/4,width-200,height/4*3);
+    }
+  }
+}
+
+
+class MazeCell {
+  int x, y;
+  float w, h;
+  boolean hasNorth = true;
+  boolean hasEast = true;
+  boolean hasSouth = true;
+  boolean hasWest = true;
+  boolean visited = false;
+
+  Maze parent;
+
+  MazeCell(int x, int y, Maze parent) {
+    this.x = x;
+    this.y = y;
+    this.parent = parent;
+    this.w = (float)width/(float)parent.resx;
+    this.h = (float)height/(float)parent.resy;
+  }
+
+  void draw() {
+    float xx = (float)x;
+    float yy = (float)y;
+
+    float x1 = xx*w;
+    float x2 = (xx+1)*w;
+    float y1 = yy*h;
+    float y2 = (yy+1)*h;
+    if (x2>=width) x2=width-1;
+    if (y2>=height) y2=height-1;
+
+    if (visited && parent.stepByStep) {
+      pushStyle();
+      noStroke();
+      fill(200);
+      rectMode(CORNERS);
+      rect(x1, y1, x2, y2);
+      popStyle();
+    }
+    if (hasNorth) line(x1, y1, x2, y1);
+    if (hasEast) line(x2, y1, x2, y2);
+    if (hasSouth) line(x1, y2, x2, y2);
+    if (hasWest) line(x1, y1, x1, y2);
+  }
+}
+
+class Maze {
+  // Maze structure
+  MazeCell[] cells;
+  int resx, resy, nbCells;
+
+  // Iteration variables
+  ArrayList<MazeCell> stack;
+  MazeCell cellCurrent;
+  int nbCellsVisited=0;
+  int cellStartx = 0, cellStarty = 0;
+  boolean computed = false;
+
+  // Step by step variables
+  boolean stepByStep = false;
+  float time = 0.0f;
+  float timeStep = 0.0015f;
+
+  // Solution
+  ArrayList<MazeCell> solution;
+
+  Maze(int resx, int resy) {
+    this.resx = resx;
+    this.resy = resy;
+    this.nbCells = resx * resy;
+
+
+    resetCells();
+  }
+
+  void setCellStart(int x, int y) {
+    if (x>=resx) x=0;
+    if (y>=resy) y=0;
+
+    this.cellStartx = x;
+    this.cellStarty = y;
+  }
+
+  void setTimeStepByStep(float t) {
+    this.timeStep = t;
+  }
+
+  boolean isComputed() {
+    return computed;
+  }
+
+  void resetCells() {
+    this.cells = new MazeCell[nbCells];
+    int k=0;
+    for (int j=0; j<resy; j++)
+      for (int i=0; i<resx; i++)
+      {
+        this.cells[k++] = new MazeCell(i, j, this);
+      }
+    nbCells = resx*resy;
+    nbCellsVisited = 0;
+  }
+
+  MazeCell getCell(int x, int y) {
+    if ((x>=0 && x<resx) && (y>=0 && y<resy))
+      return this.cells[x+resx*y];
+    return null;
+  }
+
+  void setCellVisited(MazeCell c) {
+    if (!c.visited) {
+      c.visited = true;
+      nbCellsVisited++;
+    }
+  }
+
+  boolean hasCellNeightborUnvisited(MazeCell c) {
+    MazeCell north = getCell(c.x, c.y-1);
+    if (north != null && !north.visited) return true;
+    MazeCell east = getCell(c.x+1, c.y);
+    if (east != null && !east.visited) return true;
+    MazeCell south = getCell(c.x, c.y+1);
+    if (south != null && !south.visited) return true;
+    MazeCell west = getCell(c.x-1, c.y);
+    if (west != null && !west.visited) return true;
+
+    return false;
+  }
+
+  int[][] dir = new int[][]{
+    {0, 1},
+    {0, -1},
+    {1, 0},
+    {-1, 0}
+  };
+  MazeCell findCellNeightborUnvisited(MazeCell c) {
+    MazeCell n=null;
+    do
+    {
+      int rnd = (int) random(0, 3.99); // not sure about this
+
+      n = getCell(c.x+dir[rnd][0], c.y+dir[rnd][1]);
+    }
+    while (n==null || n.visited);
+    return n;
+  }
+
+  void removeCellsWalls(MazeCell cellCurrent, MazeCell cellNeighbor) {
+    if (cellCurrent.x == cellNeighbor.x) {
+      if (cellCurrent.y > cellNeighbor.y) {
+        cellCurrent.hasNorth = false;
+        cellNeighbor.hasSouth = false;
+      } else {
+        cellCurrent.hasSouth = false;
+        cellNeighbor.hasNorth = false;
+      }
+    } else if (cellCurrent.y == cellNeighbor.y) {
+      if (cellCurrent.x > cellNeighbor.x) {
+        cellCurrent.hasWest = false;
+        cellNeighbor.hasEast = false;
+      } else {
+        cellCurrent.hasEast = false;
+        cellNeighbor.hasWest = false;
+      }
+    }
+  }
+
+  void reset()
+  {
+    resetCells();
+
+    cellCurrent = getCell(cellStartx, cellStarty);
+    setCellVisited(cellCurrent);
+
+    stack = new ArrayList<MazeCell>();
+  }
+
+  void compute()
+  {
+    reset();
+    stepByStep = false;
+    computed = false;
+
+    while (nbCellsVisited<nbCells)
+    {
+      step();
+    }
+    computed = true;
+  }
+
+  void beginComputeStepByStep()
+  {
+    time = millis();
+    reset();
+    stepByStep = true;
+  }
+
+  void computeStepByStep()
+  {
+    if (nbCellsVisited<nbCells)
+    {
+      float timeNow = millis();
+      if (timeNow - time >= timeStep*1000)
+      {
+        step();
+        time = timeNow;
+      }
+    } else
+      computed = true;
+  }
+
+
+  void step()
+  {
+    if (hasCellNeightborUnvisited(cellCurrent))
+    {
+      stack.add( cellCurrent );
+
+      MazeCell cellNeighbor = findCellNeightborUnvisited(cellCurrent);
+      removeCellsWalls(cellCurrent, cellNeighbor);
+
+      cellCurrent = cellNeighbor;
+      setCellVisited(cellCurrent);
+    } else
+    {
+      if (stack.size()>0)
+      {
+        cellCurrent = stack.remove( stack.size()-1 );
+      }
+    }
+  }
+
+  void draw()
+  {
+    for (int i=0; i<nbCells; i++) {
+      this.cells[i].draw();
+    }
+  }
+
+  void findSolution(int cellStartx, int cellStarty, int cellEndx, int cellEndy)
+  {
+    if (isComputed())
+    {
+      solution = new ArrayList<MazeCell>();
+      MazeCell cellCurrent = getCell(cellStartx, cellStarty);
+    }
+  }
+}
